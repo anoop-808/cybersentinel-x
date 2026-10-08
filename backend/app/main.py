@@ -15,6 +15,7 @@ from .detection.engine import DetectionEngine
 from .services.seed import seed_demo_data
 from .correlation.engine import correlate_events
 from .mitre.mapper import MITRE_CATALOG, map_event_to_mitre
+from .ingestion.normalizer import normalize_record
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = BASE_DIR / "data"
@@ -151,43 +152,6 @@ def incident_dict(i: Incident) -> dict[str, Any]:
     }
 
 
-def normalize_record(record: dict[str, Any], index: int) -> dict[str, Any]:
-    def pick(*keys: str, default: Any = "") -> Any:
-        for key in keys:
-            if key in record and record[key] not in (None, ""):
-                return record[key]
-        return default
-
-    timestamp = pick("timestamp", "TimeCreated", "time", default=datetime.now(timezone.utc).isoformat())
-    if isinstance(timestamp, (int, float)):
-        timestamp = datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat()
-    timestamp = str(timestamp).replace("Z", "+00:00")
-    try:
-        dt = datetime.fromisoformat(timestamp)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-    except ValueError:
-        dt = datetime.now(timezone.utc)
-
-    return {
-        "event_id": str(pick("event_id", "EventId", "Id", default=f"IMP-{index:04d}")),
-        "timestamp": dt,
-        "source": str(pick("source", "ProviderName", "Provider", default="Windows")),
-        "event_type": str(pick("event_type", "EventType", "Type", "LevelDisplayName", default="Unknown Event")),
-        "computer": str(pick("computer", "MachineName", default="ImportedHost")),
-        "user_name": str(pick("user_name", "User", "AccountName", default="UNKNOWN")),
-        "process_name": str(pick("process_name", "ProcessName", "Image", default="")),
-        "command_line": str(pick("command_line", "CommandLine", "ScriptBlockText", default="")),
-        "parent_process": str(pick("parent_process", "ParentProcess", "ParentImage", default="")),
-        "registry_path": str(pick("registry_path", "RegistryPath", default="")),
-        "destination_ip": str(pick("destination_ip", "DestinationIp", "DestinationIP", default="")),
-        "process_id": str(pick("process_id", "ProcessId", default="")),
-        "logon_id": str(pick("logon_id", "LogonId", default="")),
-        "severity": str(pick("severity", "Severity", default="INFO")),
-        "raw_data": json.dumps(record, default=str),
-    }
-
-
 def save_events(records: list[dict[str, Any]]) -> int:
     db = SessionLocal()
     created = 0
@@ -254,9 +218,19 @@ def rebuild_alerts_and_incidents() -> None:
 def startup() -> None:
     db = SessionLocal()
     try:
-        if db.scalar(select(Event.id).limit(1)) is None:
-            seed_demo_data(save_events)
-            rebuild_alerts_and_incidents()
+        needs_seed = db.scalar(select(Event.id).limit(1)) is None
+    finally:
+        db.close()
+    if needs_seed:
+        seed_demo_data(save_events)
+    rebuild_alerts_and_incidents()
+
+
+def demo_chain() -> list[dict[str, Any]]:
+    db = SessionLocal()
+    try:
+        events = db.scalars(select(Event).where(Event.event_id.like("EVT-100%"))).all()
+        return [{**event_dict(e), "detection": detector.analyze(event_dict(e)), "synthetic": True} for e in events]
     finally:
         db.close()
 
@@ -342,7 +316,19 @@ def get_incident(incident_id: int) -> dict[str, Any]:
             raise HTTPException(404, "Incident not found")
         event_ids = [x.event_id for x in db.scalars(select(IncidentEvent).where(IncidentEvent.incident_id == incident.id)).all()]
         events = [db.get(Event, x) for x in event_ids]
-        return {**incident_dict(incident), "events": [event_dict(e) for e in events if e]}
+        event_rows = [event_dict(e) for e in events if e]
+        alerts = db.scalars(select(Alert).where(Alert.event_id.in_(event_ids))).all() if event_ids else []
+        technique_ids = sorted({technique for alert in alerts for technique in json.loads(alert.mitre_techniques or "[]")})
+        return {
+            **incident_dict(incident),
+            "affected_computer": event_rows[0]["computer"] if event_rows else "",
+            "users": sorted({event["user_name"] for event in event_rows if event["user_name"]}),
+            "event_count": len(event_rows),
+            "related_alerts": [alert_dict(alert) for alert in alerts],
+            "techniques": [MITRE_CATALOG[key] for key in technique_ids if key in MITRE_CATALOG],
+            "explanations": [alert.explanation for alert in alerts if alert.explanation],
+            "events": event_rows,
+        }
     finally:
         db.close()
 
@@ -369,6 +355,15 @@ def mitre() -> list[dict[str, str]]:
     return list(MITRE_CATALOG.values())
 
 
+@app.get("/api/demo/malware-chain")
+def malware_chain() -> dict[str, Any]:
+    return {
+        "synthetic": True,
+        "description": "Controlled Windows-style telemetry for a PowerShell-led suspicious activity chain.",
+        "events": demo_chain(),
+    }
+
+
 @app.post("/api/events/ingest")
 async def ingest(file: UploadFile = File(...)) -> dict[str, Any]:
     name = (file.filename or "").lower()
@@ -378,16 +373,36 @@ async def ingest(file: UploadFile = File(...)) -> dict[str, Any]:
     try:
         if name.endswith(".json"):
             payload = json.loads(content.decode("utf-8-sig"))
-            records = payload if isinstance(payload, list) else payload.get("events", [])
+            records = payload if isinstance(payload, list) else payload.get("events", []) if isinstance(payload, dict) else []
         else:
             records = list(csv.DictReader(io.StringIO(content.decode("utf-8-sig"))))
         if not isinstance(records, list) or not records:
             raise ValueError("No event records found")
         if len(records) > 5000:
             raise ValueError("Maximum 5000 records per upload")
-        created = save_events(records)
+        accepted_records = []
+        rejected = 0
+        for record in records:
+            try:
+                normalize_record(record, len(accepted_records) + 1)
+                accepted_records.append(record)
+            except (TypeError, ValueError):
+                rejected += 1
+        if not accepted_records:
+            raise ValueError("No valid event records found")
+        created = save_events(accepted_records)
         rebuild_alerts_and_incidents()
-        return {"created": created, "status": "ingested"}
+        db = SessionLocal()
+        try:
+            return {
+                "accepted": created,
+                "rejected": rejected,
+                "alerts_generated": db.query(Alert).count(),
+                "incidents_created": db.query(Incident).count(),
+                "status": "ingested",
+            }
+        finally:
+            db.close()
     except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
         raise HTTPException(400, f"Invalid input: {exc}") from exc
 

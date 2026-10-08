@@ -6,7 +6,13 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $out = Join-Path $root 'backend\data\windows_events.json'
 
-$logs = @('Security','System','Windows PowerShell')
+$logs = @(
+    'Security',
+    'System',
+    'Windows PowerShell',
+    'Microsoft-Windows-PowerShell/Operational',
+    'Microsoft-Windows-Sysmon/Operational'
+)
 $records = @()
 
 foreach ($log in $logs) {
@@ -27,7 +33,7 @@ foreach ($log in $logs) {
                 process_id = ''
                 logon_id = ''
                 severity = [string]$_.LevelDisplayName
-                raw_message = [string]$_.Message
+                raw_data = @{ message = [string]$_.Message; record_id = [string]$_.RecordId }
             }
         }
     } catch {

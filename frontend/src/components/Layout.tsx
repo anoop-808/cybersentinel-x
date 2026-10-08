@@ -9,6 +9,7 @@ const items = [
   ['/timeline', 'Attack Timeline'],
   ['/mitre', 'MITRE ATT&CK'],
   ['/investigation', 'Investigation'],
+  ['/lab', 'Detection Lab'],
 ]
 
 export default function Layout({ children }: { children: ReactNode }) {

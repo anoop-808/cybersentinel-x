@@ -15,7 +15,8 @@ cybersentinel-x/
 │   │   ├── detection/        # Rules + baseline ML
 │   │   ├── correlation/      # Event-to-incident grouping
 │   │   ├── mitre/            # ATT&CK technique mapping
-│   │   ├── services/         # Seed/demo data
+│   │   ├── ingestion/         # Windows JSON normalization
+│   │   ├── services/          # Seed/demo data
 │   │   └── main.py            # FastAPI + persistence + API
 │   ├── data/                 # SQLite DB + imported logs
 │   └── requirements.txt
@@ -84,6 +85,37 @@ Set-ExecutionPolicy -Scope Process Bypass
 Then open **Event Explorer → Ingest Logs** and select `backend\data\windows_events.json`.
 
 The importer accepts either JSON arrays or CSV files and normalizes common field names. This lets the same backend work with datasets created on Windows or Linux.
+
+The exporter skips unavailable channels with a warning. It attempts Security, System, Windows PowerShell, PowerShell Operational, and Sysmon Operational logs; Sysmon is optional. The output is synthetic-safe normalized JSON and retains the original message/record ID in `raw_data`.
+
+## API workflow
+
+The main API contract is:
+
+```text
+GET  /api/health
+GET  /api/stats
+GET  /api/events
+POST /api/events/ingest       multipart field: file (.json or .csv)
+GET  /api/alerts
+GET  /api/incidents
+GET  /api/timeline
+GET  /api/mitre
+GET  /api/demo/malware-chain
+```
+
+Ingestion normalizes each record, stores it in SQLite, rebuilds baseline detections, correlates same-host events within ten minutes, and exposes the resulting alerts/incidents. Malformed records are counted as rejected when at least one valid record remains.
+
+## Demo walkthrough
+
+Use **Detection Lab** to view the deterministic synthetic PowerShell chain. It demonstrates encoded PowerShell, transfer activity, registry persistence, network communication, risk scoring, explanations, MITRE IDs, and the correlated incident/timeline. It does not download or execute malware and is not a claim of arbitrary malware classification.
+
+## Development checks
+
+```bash
+cd backend && python -m unittest discover -s tests -v
+cd ../frontend && npm run build
+```
 
 ## Current prototype scope
 

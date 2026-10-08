@@ -7,11 +7,11 @@ export default function Events() {
   const [events, setEvents] = useState<EventRecord[]>([])
   const [selected, setSelected] = useState<EventRecord | null>(null)
   const [message, setMessage] = useState('')
-  const load = () => api.events().then(setEvents).catch(e => setMessage(String(e)))
+  const load = () => { api.events().then(setEvents).catch(e => setMessage(String(e))) }
   useEffect(load, [])
   async function ingest(file: File | undefined) {
     if (!file) return
-    try { const r = await api.ingest(file); setMessage(`${r.created} event(s) ingested successfully.`); load() } catch (e) { setMessage(String(e)) }
+    try { const r = await api.ingest(file); setMessage(`${r.accepted} event(s) accepted, ${r.rejected} rejected. ${r.alerts_generated} alerts and ${r.incidents_created} incidents now exist.`); load() } catch (e) { setMessage(String(e)) }
   }
   return <>
     <PageTitle title="Event Explorer" description="Inspect normalized Windows-style telemetry and ingest JSON/CSV exports."

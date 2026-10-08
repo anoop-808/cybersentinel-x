@@ -40,6 +40,9 @@ export type Incident = {
   status: string
   created_at: string | null
   events?: EventRecord[]
+  users?: string[]
+  techniques?: MitreItem[]
+  explanations?: string[]
 }
 
 export type Stats = {
@@ -55,4 +58,22 @@ export type MitreItem = {
   name: string
   tactic: string
   description: string
+}
+
+export type DemoChain = {
+  synthetic: boolean
+  description: string
+  events: Array<EventRecord & { synthetic: boolean; detection: DetectionResult }>
+}
+
+export type DetectionResult = {
+  title: string
+  severity: string
+  risk_score: number
+  classification: string
+  rule_hits: string[]
+  explanation: string
+  mitre_techniques: string[]
+  ml_score: number
+  rule_score: number
 }

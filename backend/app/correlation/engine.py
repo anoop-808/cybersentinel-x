@@ -30,7 +30,7 @@ def correlate_events(events: list[dict], alerts: list[dict]) -> list[dict]:
 def _build_group(group: dict) -> dict:
     max_risk = max((a["risk_score"] for a in group["alerts"]), default=0)
     title = "Correlated suspicious activity"
-    if any("PowerShell" in a["title"] for a in group["alerts"]):
+    if any(any("PowerShell" in hit for hit in a.get("rule_hits", [])) for a in group["alerts"]):
         title = "Potential PowerShell-led intrusion sequence"
     return {
         "title": title,

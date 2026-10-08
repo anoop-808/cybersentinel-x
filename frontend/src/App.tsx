@@ -7,6 +7,7 @@ import Incidents from './pages/Incidents'
 import Timeline from './pages/Timeline'
 import Mitre from './pages/Mitre'
 import Investigation from './pages/Investigation'
+import DetectionLab from './pages/DetectionLab'
 
 export default function App() {
   return <BrowserRouter><Layout><Routes>
@@ -17,5 +18,6 @@ export default function App() {
     <Route path="/timeline" element={<Timeline />} />
     <Route path="/mitre" element={<Mitre />} />
     <Route path="/investigation" element={<Investigation />} />
+    <Route path="/lab" element={<DetectionLab />} />
   </Routes></Layout></BrowserRouter>
 }

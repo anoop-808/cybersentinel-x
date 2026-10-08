@@ -61,6 +61,8 @@ Windows Event Logs / JSON / CSV
 - **Investigation:** consumes incidents/events and creates analyst/report views.
 - **API:** the only contract the frontend depends on.
 
+SQLite is the Phase-I persistence boundary. Events are normalized before storage; alerts and incidents are rebuilt from stored events after ingestion so the same path is used for seeded, imported, and future collector data. The baseline ML model is a small replaceable lexical classifier and no evaluation metrics are claimed until a documented dataset is evaluated.
+
 ## Extension principle
 
 Adding a new collector, detection rule, classifier, or mapping should primarily add a module or adapter. Existing API response shapes should remain stable unless a deliberate versioned change is required.

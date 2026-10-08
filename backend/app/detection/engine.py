@@ -1,4 +1,5 @@
 from .ml_model import BaselineNBClassifier
+from .scoring import calculate_risk, classify_risk
 
 RULES = [
     {
@@ -59,16 +60,8 @@ class DetectionEngine:
                 reasons.append(rule["reason"])
                 mitre.append(rule["mitre"])
         ml_score = self.model.predict_risk(text)
-        risk = min(100, round(rule_score * 0.7 + ml_score * 0.3)) if rule_score else ml_score
-        if risk >= 90:
-            severity = "CRITICAL"
-        elif risk >= 75:
-            severity = "HIGH"
-        elif risk >= 45:
-            severity = "MEDIUM"
-        else:
-            severity = "LOW"
-        classification = "Malicious" if risk >= 75 else "Suspicious" if risk >= 45 else "Benign"
+        risk = calculate_risk(rule_score, ml_score)
+        severity, classification = classify_risk(risk)
         if not reasons and ml_score >= 45:
             reasons.append("Baseline ML classifier identified a high-risk lexical pattern.")
         if not reasons:
