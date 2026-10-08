@@ -18,6 +18,6 @@ export default function App() {
     <Route path="/timeline" element={<Timeline />} />
     <Route path="/mitre" element={<Mitre />} />
     <Route path="/investigation" element={<Investigation />} />
-    <Route path="/lab" element={<DetectionLab />} />
+    <Route path="/detection-lab" element={<DetectionLab />} />
   </Routes></Layout></BrowserRouter>
 }

@@ -14,6 +14,7 @@ export type EventRecord = {
   process_id: string
   logon_id: string
   severity: string
+  raw_data?: Record<string, unknown>
 }
 
 export type Alert = {
@@ -40,7 +41,8 @@ export type Incident = {
   status: string
   created_at: string | null
   events?: EventRecord[]
-  users?: string[]
+  affected_computer?: string
+  related_alerts?: Alert[]
   techniques?: MitreItem[]
   explanations?: string[]
 }
@@ -60,11 +62,6 @@ export type MitreItem = {
   description: string
 }
 
-export type DemoChain = {
-  synthetic: boolean
-  description: string
-  events: Array<EventRecord & { synthetic: boolean; detection: DetectionResult }>
-}
 
 export type DetectionResult = {
   title: string
@@ -76,4 +73,15 @@ export type DetectionResult = {
   mitre_techniques: string[]
   ml_score: number
   rule_score: number
+}
+
+export type DemoChainItem = EventRecord & {
+  synthetic: boolean
+  detection: DetectionResult
+}
+
+export type DemoChain = {
+  synthetic: boolean
+  description: string
+  events: DemoChainItem[]
 }

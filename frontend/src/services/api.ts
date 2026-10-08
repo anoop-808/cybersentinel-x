@@ -1,6 +1,6 @@
-import type { Alert, DemoChain, EventRecord, Incident, MitreItem, Stats } from '../types'
+import type { Alert, EventRecord, Incident, MitreItem, Stats, DemoChain } from '../types'
 
-export const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:8000/api'
+export const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000').replace(/\/$/, '') + '/api'
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`)
@@ -17,7 +17,7 @@ export const api = {
   incident: (id: number) => get<Incident>(`/incidents/${id}`),
   timeline: () => get<(EventRecord & { alert: Alert | null })[]>('/timeline'),
   mitre: () => get<MitreItem[]>('/mitre'),
-  demoChain: () => get<DemoChain>('/demo/malware-chain'),
+  malwareChain: () => get<DemoChain>('/demo/malware-chain'),
   ingest: async (file: File) => {
     const fd = new FormData()
     fd.append('file', file)

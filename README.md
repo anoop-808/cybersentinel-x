@@ -1,6 +1,6 @@
-# CyberSentinel-X — Phase-I Working Prototype
+# CyberSentinel-X — Phase-II Frontend + Phase-I Backend
 
-CyberSentinel-X is a modular research prototype built from the supplied Phase-I abstract. The current implementation provides a working React frontend, FastAPI backend, SQLite persistence, Windows-style event ingestion, hybrid rule + lightweight ML baseline detection, risk scoring, explainability, event correlation, attack timeline reconstruction, MITRE ATT&CK mapping, incident investigation, and a text investigation report.
+CyberSentinel-X is a modular research prototype built from the supplied Phase-I abstract. The Phase-II frontend is an analyst-oriented SOC workspace layered on the unchanged Phase-I FastAPI backend. It provides real backend-driven dashboards, event exploration and ingestion, alerts, incidents, attack timelines, investigation, MITRE ATT&CK context, and a Detection Lab for the synthetic telemetry workflow.
 
 ## Why this foundation is flexible
 
@@ -65,6 +65,23 @@ Open: `http://localhost:5173`
 
 The backend API is available at `http://127.0.0.1:8000/docs`.
 
+### Configure the API base URL
+
+The frontend defaults to `http://127.0.0.1:8000`. To point it at another backend, set `VITE_API_BASE_URL` to the backend origin before starting or building Vite:
+
+```bash
+VITE_API_BASE_URL=http://192.168.1.20:8000 npm run dev
+```
+
+PowerShell:
+
+```powershell
+$env:VITE_API_BASE_URL = 'http://192.168.1.20:8000'
+npm run dev
+```
+
+The frontend API service appends `/api`; do not include that suffix in the variable.
+
 ## Linux
 
 ```bash
@@ -72,6 +89,16 @@ The backend API is available at `http://127.0.0.1:8000/docs`.
 ```
 
 Open `http://localhost:5173`.
+
+Manual startup is equivalent to the Windows flow:
+
+```bash
+cd backend && python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+cd ../frontend && npm install && npm run dev
+```
+
+The frontend and backend remain separate applications. The frontend calls the existing `/api/*` contract; detection, risk scoring, correlation, MITRE mapping, incident creation, and timeline reconstruction remain backend responsibilities.
 
 ## Import real Windows logs
 
